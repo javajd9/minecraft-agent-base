@@ -1,18 +1,29 @@
-# 🧠 Minecraft AI — Reinforcement Learning System
+# 🧠 Minecraft AI Agent
 
-A Minecraft reinforcement learning agent using **Mineflayer** (Node.js) as the environment body and **PPO via Stable-Baselines3** (Python) as the brain, connected by a WebSocket bridge.
+An autonomous Minecraft AI agent powered by a **local LLM** (Ollama) with intelligent navigation, environmental awareness, and self-improving gameplay. The agent perceives its surroundings through an advanced scanner system, makes decisions via LLM reasoning, and navigates using A* pathfinding.
 
 ```
-Minecraft Server (flat world)
+Minecraft Server (Java Edition)
         │
-   Mineflayer Bot (bot.js)   ← controls the player
+   Mineflayer Bot (bot.js)     ← controls the player in-game
         │
-   WebSocket  (port 3001)    ← server.js bridges the gap
-        │
-   Python Gym Env (env.py)   ← standard Gymnasium interface
-        │
-   PPO Agent (train.py)      ← Stable-Baselines3 trains the brain
+   Brain (brain.js)            ← LLM-driven decision engine
+   ├── Scanner (scanner.js)    ← environmental perception & path analysis
+   ├── Navigator (navigation.js) ← reactive movement fallback
+   └── Ollama (local LLM)      ← reasoning & planning
 ```
+
+---
+
+## Features
+
+- 🧠 **LLM-Powered Decision Making** — uses a local Ollama model (e.g. `llama3.1:8b`) for reasoning, planning, and natural language chat
+- 🔍 **Environmental Scanner** — 8-directional terrain analysis, path obstruction detection, mob tracking, resource radar, and dropped item detection
+- 🗺️ **A* Pathfinding** — uses `mineflayer-pathfinder` for intelligent route planning (jumping, swimming, cliff avoidance)
+- ⛏️ **Autonomous Survival** — gathers resources, crafts tools, fights mobs, and progresses through survival milestones
+- 📚 **Persistent Memory** — learns from past sessions, remembers resource locations, and extracts gameplay lessons
+- 🛡️ **Self-Preservation** — auto-eats, equips armor, flees from overwhelming threats
+- 💬 **In-Game Chat** — responds to player messages naturally via LLM
 
 ---
 
@@ -22,83 +33,55 @@ Minecraft Server (flat world)
 |------|---------|-------|
 | **Node.js** | ≥ 18 | `node --version` |
 | **npm** | ≥ 9 | comes with Node |
-| **Python** | ≥ 3.10 | `python --version` |
-| **pip** | latest | `pip --version` |
+| **Ollama** | latest | [ollama.com](https://ollama.com) — run `ollama pull llama3.1:8b` |
 | **Minecraft Java Edition** | 1.21 recommended | Any version ≥ 1.16 works |
 
 ---
 
 ## Setup
 
-### 1. Install Node.js dependencies
+### 1. Install dependencies
 ```powershell
-cd c:\Users\shane\Desktop\minecraft_ai
+cd minecraft_ai
 npm install
 ```
 
-### 2. Install Python dependencies
+### 2. Install & start Ollama
 ```powershell
-pip install -r requirements.txt
+ollama pull llama3.1:8b
+ollama serve
 ```
 
 ---
 
-## Running the System
+## Running
 
-> ⚠️ You must start components in order: Minecraft → Node server → Python trainer.
+> Start components in order: Minecraft → Ollama → Node server.
 
-### Step 1 — Start a Minecraft Java server (or use Singleplayer LAN)
+### Step 1 — Start Minecraft
+**Singleplayer LAN** (easiest):
+- Create a new world (any type)
+- Open to LAN: `Escape → Open to LAN → Allow Cheats: ON → Start`
+- Note the port; update `config.json` if not `25565`
 
-**Option A — Dedicated server (recommended)**
-- Download [PaperMC](https://papermc.io/downloads) or the [official Minecraft server jar](https://www.minecraft.net/en-us/download/server)
-- Create a `server.properties` with: `level-type=flat`, `online-mode=false`
-- Run: `java -Xmx2G -jar server.jar nogui`
+**Dedicated server** (alternative):
+- Use [PaperMC](https://papermc.io/downloads) with `online-mode=false`
 
-**Option B — Singleplayer LAN**
-- Create a new flat world
-- Open to LAN: `Escape → Open to LAN → Allow Cheats: ON → Start LAN World`
-- Note the port it prints (usually `25565`); update `config.json` if different
-
-### Step 2 — Start the WebSocket bridge
+### Step 2 — Start the AI agent
 ```powershell
-# In Terminal 1
-cd c:\Users\shane\Desktop\minecraft_ai
 node server.js
 ```
 Expected output:
 ```
 [Server] Starting...
 [Server] WebSocket listening on ws://localhost:3001
-[Server] Connecting bot to Minecraft...
 [Bot] Spawned at {"x":0,"y":64,"z":0}
-[Server] Bot ready. Waiting for Python client...
+[Bot] ✅ Pathfinder configured
+[Brain] Agent memory loaded.
+[Brain] Thinking every 3s. Session #1
 ```
-You should also see a new player named `rl_agent` appear in your Minecraft world.
 
-### Step 3 — Start training
-```powershell
-# In Terminal 2
-cd c:\Users\shane\Desktop\minecraft_ai
-python train.py
-```
-Expected output:
-```
-[Train] Initialising environment...
-[Env] Connecting to ws://localhost:3001 ...
-[Env] Connected.
-[Train] Building PPO model...
-[Train] Starting training for 500,000 timesteps...
-```
-PPO will then print rollout stats every 512 steps.
-
-### Step 4 — (Optional) Monitor with TensorBoard
-```powershell
-# In Terminal 3
-cd c:\Users\shane\Desktop\minecraft_ai
-tensorboard --logdir ./logs
-# Open http://localhost:6006 in your browser
-```
-Watch **`ep_rew_mean`** — it should climb as the agent learns to explore.
+The agent will immediately start playing — gathering wood, crafting tools, and exploring.
 
 ---
 
@@ -106,15 +89,14 @@ Watch **`ep_rew_mean`** — it should climb as the agent learns to explore.
 
 ```
 minecraft_ai/
-├── config.json       ← shared settings (ports, version, step timing)
-├── package.json      ← Node.js project manifest
-├── bot.js            ← Mineflayer bot: movement + observation builder
-├── server.js         ← WebSocket server: reward logic + episode mgmt
-├── requirements.txt  ← Python dependencies
-├── env.py            ← Gymnasium environment wrapping the WebSocket
-├── train.py          ← PPO training loop (Stable-Baselines3)
-├── logs/             ← TensorBoard logs (created on first run)
-└── models/           ← Saved checkpoints + final model (created on first run)
+├── config.json        ← server connection settings
+├── package.json       ← Node.js dependencies
+├── server.js          ← WebSocket server & bot initialization
+├── bot.js             ← Mineflayer bot setup
+├── brain.js           ← LLM decision engine, actions, and memory
+├── scanner.js         ← Environmental perception & path data
+├── navigation.js      ← Reactive movement fallback
+└── agent_memory.json  ← Persistent memory (auto-created)
 ```
 
 ---
@@ -127,53 +109,45 @@ minecraft_ai/
 | `mcPort` | `25565` | Minecraft server port |
 | `mcVersion` | `1.21` | Minecraft protocol version |
 | `wsPort` | `3001` | WebSocket server port |
-| `stepMs` | `100` | Milliseconds per RL step |
-| `maxSteps` | `2000` | Steps before episode truncation |
 | `botUsername` | `rl_agent` | In-game player name |
 
 ---
 
-## Observation & Action Space
+## Architecture
 
-### Observation vector (10 floats)
-```
-[x, y, z,             ← world position
- vx, vy, vz,          ← velocity (blocks/tick)
- onGround,            ← 1.0 if touching ground
- block_N, block_E, block_S]  ← nearby block type IDs (normalised)
-```
+### Scanner (`scanner.js`)
+The scanner provides the agent's "eyes" — a structured view of the world:
+- **Surroundings scan**: 8-direction terrain analysis with elevation classification (slopes, mountains, cliffs)
+- **Path data** (`getPathData()`): Structured obstruction info used by BOTH the LLM and navigator — single source of truth
+- **Resource radar**: Nearby blocks, hostile mobs, food animals, dropped items
+- **Path obstructions**: What's blocking each direction, required tools, wall heights
 
-### Actions (Discrete 4)
-| ID | Action |
-|----|--------|
-| 0 | Move forward |
-| 1 | Turn left + move forward |
-| 2 | Turn right + move forward |
-| 3 | Jump + move forward |
+### Brain (`brain.js`)
+The decision engine runs a think loop every 3 seconds:
+1. Scanner builds environmental context
+2. LLM receives context + inventory + goals + memory
+3. LLM responds with action + reasoning + chat
+4. Brain executes the action (mine, craft, explore, fight, flee)
+5. Results feed back into memory for learning
 
-### Rewards
-| Event | Reward |
-|-------|--------|
-| Alive per step | +0.01 |
-| Visit new block | +0.10 |
-| Death | -5.00 |
-| Episode truncation | 0 |
+### Navigator (`navigation.js`)
+Reactive movement fallback when A* pathfinding is unavailable:
+- Velocity-based auto-jump for small terrain steps
+- Tool-aware digging (won't break stone without a pickaxe)
+- Water swimming toward target
+- Stuck detection with escalating strategies
 
 ---
 
 ## Troubleshooting
 
-**Bot won't connect to Minecraft**
-- Make sure `mcVersion` in `config.json` matches your server version exactly.
-- For LAN, set `mcPort` to the port shown in chat (e.g. `53421`).
+**Bot won't connect**
+- Ensure `mcVersion` in `config.json` matches your server exactly
+- For LAN, set `mcPort` to the port shown in chat
 
-**Python can't connect to WebSocket**
-- Make sure `node server.js` is running first.
-- Check that nothing else is using port 3001.
+**Bot sits idle**
+- Check that Ollama is running: `ollama serve`
+- Verify the model is installed: `ollama list`
 
 **`mineflayer` module not found**
-- Run `npm install` in the project directory.
-
-**PPO training is very slow**
-- Reduce `stepMs` in `config.json` to `50` for faster steps.
-- Increase `N_STEPS` in `train.py` if you have more RAM.
+- Run `npm install` in the project directory
